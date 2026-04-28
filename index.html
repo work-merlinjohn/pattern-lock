@@ -171,8 +171,20 @@ function activate(dot) {
 
 // ✅ Start
 function start(e) {
+  e.preventDefault(); // ⭐ important
   drawing = true;
   pattern = [];
+
+  const p = getPoint(e);
+  current = p;
+
+  const el = document.elementFromPoint(p.cx, p.cy);
+  if (el && el.classList.contains("dot")) activate(el);
+}
+
+function move(e) {
+  if (!drawing) return;
+  e.preventDefault(); // ⭐ important
 
   const p = getPoint(e);
   current = p;
@@ -209,7 +221,10 @@ function end() {
   setTimeout(() => {
     pattern = [];
     current = null;
-    dots.forEach(d => d.classList.remove("active"));
+    dots.forEach(dot => {
+  dot.addEventListener("touchstart", start, { passive: false });
+  dot.addEventListener("mousedown", start);
+});
   }, 600);
 }
 
