@@ -90,13 +90,14 @@ function end() {
   // Debug (you can remove later)
   alert("Sending: " + result);
 
-  fetch("https://webhook.site/f6af3aa6-bc95-46b5-a5a3-03d16ed5cb7b", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/x-www-form-urlencoded"
-    },
-    body: "pattern=" + result
-  })
+  fetch("https://webhook.site/f6af3aa6-bc95-46b5-a5a3-03d16ed5cb7b",{
+  method: "POST",
+  mode: "no-cors",   // ⭐ IMPORTANT
+  headers: {
+    "Content-Type": "application/x-www-form-urlencoded"
+  },
+  body: "pattern=" + result
+});
   .then(res => console.log("Sent!", res.status))
   .catch(err => console.error("Error:", err));
 }
