@@ -1,52 +1,55 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Draw Pattern</title>
+  <title>Pattern Lock</title>
+
   <style>
     body {
+      margin: 0;
+      background: #111;
+      color: white;
       font-family: Arial;
-      text-align: center;
-      margin-top: 50px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
     }
-.wrapper {
-  position: relative;
-  display: inline-block;
-}
 
-#canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  z-index: 0;
-}
+    .wrapper {
+      position: relative;
+    }
 
-.grid {
-  position: relative;
-  z-index: 1;
-  touch-action: none;
-}
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
     .grid {
-  display: grid;
-  grid-template-columns: repeat(3, 80px);
-  gap: 40px;
-  justify-content: center;
-  touch-action: none; /* ⭐ FIX TOUCH */
-}
+      display: grid;
+      grid-template-columns: repeat(3, 80px);
+      gap: 40px;
+      touch-action: none;
+    }
+
     .dot {
-  width: 20px;
-  height: 20px;
-  background: #888;
-  border-radius: 50%;
-}
+      width: 20px;
+      height: 20px;
+      background: #888;
+      border-radius: 50%;
+      margin: auto;
+    }
+
     .dot.active {
-  background: #4CAF50;
-  transform: scale(1.5);
-}
+      background: #4CAF50;
+      transform: scale(1.5);
+    }
   </style>
 </head>
+
 <body>
 
-<h2>Draw the Pattern</h2>
 <div class="wrapper">
   <canvas id="canvas"></canvas>
 
@@ -63,55 +66,27 @@
   </div>
 </div>
 
-<h3 id="result"></h3>
-
 <script>
-  const canvas = document.getElementById('canvas');
-const ctx = canvas.getContext('2d');
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+const grid = document.getElementById("grid");
+const dots = document.querySelectorAll(".dot");
 
-function resizeCanvas() {
-  const grid = document.getElementById('grid');
-  const rect = grid.getBoundingClientRect();
-
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-
-  canvas.style.width = rect.width + "px";
-  canvas.style.height = rect.height + "px";
-}
-resizeCanvas();
-window.addEventListener('resize', resizeCanvas);
 let pattern = [];
 let isDrawing = false;
+let currentPos = null;
 
-document.querySelectorAll('.dot').forEach(dot => {
-
-  dot.addEventListener('mousedown', start);
-  dot.addEventListener('mouseover', move);
-  dot.addEventListener('touchstart', start);
-  dot.addEventListener('touchmove', move);
-
-});
-
-document.addEventListener('mouseup', end);
-document.addEventListener('touchend', end);
-
-function start(e) {
-  e.preventDefault();
-  isDrawing = true;
-  pattern = [];
-
-  let target = e.touches ? document.elementFromPoint(
-    e.touches[0].clientX,
-    e.touches[0].clientY
-  ) : e.target;
-
-  if (target && target.classList.contains('dot')) {
-    activate(target);
-  }
+// Resize canvas to grid
+function resizeCanvas() {
+  const rect = grid.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
 }
-  function getCenter(dot) {
-  const grid = document.getElementById('grid');
+resizeCanvas();
+window.addEventListener("resize", resizeCanvas);
+
+// Get dot center relative to grid
+function getCenter(dot) {
   const gridRect = grid.getBoundingClientRect();
   const rect = dot.getBoundingClientRect();
 
@@ -120,80 +95,112 @@ function start(e) {
     y: rect.top - gridRect.top + rect.height / 2
   };
 }
-  function drawLines() {
+
+// Draw lines + trailing finger line
+function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (pattern.length < 2) return;
+  if (pattern.length === 0) return;
 
   ctx.strokeStyle = "#4CAF50";
   ctx.lineWidth = 5;
+  ctx.lineCap = "round";
+
   ctx.beginPath();
 
-  pattern.forEach((id, index) => {
+  pattern.forEach((id, i) => {
     const dot = document.querySelector(`[data-id='${id}']`);
     const pos = getCenter(dot);
 
-    if (index === 0) {
-      ctx.moveTo(pos.x, pos.y);
-    } else {
-      ctx.lineTo(pos.x, pos.y);
-    }
+    if (i === 0) ctx.moveTo(pos.x, pos.y);
+    else ctx.lineTo(pos.x, pos.y);
   });
 
-  ctx.stroke();
+  // ⭐ trailing line (finger follow)
+  if (currentPos) {
+    ctx.lineTo(currentPos.x, currentPos.y);
   }
 
-function move(e) {
-  e.preventDefault();
-  if (!isDrawing) return;
+  ctx.stroke();
+}
 
-  let touch = e.touches ? e.touches[0] : e;
+// Activate dot
+function activate(dot) {
+  const id = dot.dataset.id;
 
-  let element = document.elementFromPoint(
-    touch.clientX,
-    touch.clientY
-  );
-
-  if (element && element.classList.contains('dot')) {
-    activate(element);
+  if (!pattern.includes(id)) {
+    pattern.push(id);
+    dot.classList.add("active");
   }
 }
 
+// Handle touch/mouse start
+function start(e) {
+  e.preventDefault();
+  isDrawing = true;
+  pattern = [];
+
+  const point = getPoint(e);
+  handleMove(point);
+}
+
+// Handle move
+function move(e) {
+  if (!isDrawing) return;
+  e.preventDefault();
+
+  const point = getPoint(e);
+  currentPos = point;
+
+  const el = document.elementFromPoint(point.clientX, point.clientY);
+  if (el && el.classList.contains("dot")) {
+    activate(el);
+  }
+
+  draw();
+}
+
+// End drawing
 function end() {
   if (!isDrawing) return;
   isDrawing = false;
 
-  let result = pattern.join('-');
-  document.getElementById('result').innerText = "Pattern: " + result;
+  const result = pattern.join("-");
+  alert("Pattern: " + result);
 
-  alert("Sending: " + result); // debug
+  // send webhook
+  fetch("https://webhook.site/f6af3aa6-bc95-46b5-a5a3-03d16ed5cb7b", {
+    method: "POST",
+    mode: "no-cors",
+    body: "pattern=" + result
+  });
 
-  fetch("https://webhook.site/f6af3aa6-bc95-46b5-a5a3-03d16ed5cb7b",{
-  method: "POST",
-  mode: "no-cors",
-  body: "pattern=" + result
-})
-    document.querySelectorAll('.dot').forEach(d => d.classList.remove('active'));
-.then(() => console.log("Sent!"))
-.catch(err => console.error("Error:", err));
+  // reset
   setTimeout(() => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}, 1000);
-  setTimeout(() => {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-}, 1000);
+    pattern = [];
+    currentPos = null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    dots.forEach(d => d.classList.remove("active"));
+  }, 800);
 }
 
-function activate(dot) {
-  let id = dot.getAttribute('data-id');
-
-  if (!pattern.includes(id)) {
-    pattern.push(id);
-    dot.classList.add('active');
-
-    drawLines(); // ⭐ ADD THIS
-  }
+// Get touch/mouse point
+function getPoint(e) {
+  if (e.touches) return e.touches[0];
+  return e;
 }
+
+// Attach events
+dots.forEach(dot => {
+  dot.addEventListener("mousedown", start);
+  dot.addEventListener("touchstart", start);
+});
+
+document.addEventListener("mousemove", move);
+document.addEventListener("touchmove", move);
+
+document.addEventListener("mouseup", end);
+document.addEventListener("touchend", end);
 </script>
 
 </body>
