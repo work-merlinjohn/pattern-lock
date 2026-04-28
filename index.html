@@ -5,16 +5,13 @@
 
   <style>
     body {
-      margin: 0;
-      background: #111;
-      color: white;
-      font-family: Arial;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
+  margin: 0;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
     }
-
     .wrapper {
       position: relative;
     }
@@ -27,24 +24,25 @@
     }
 
     .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 80px);
-      gap: 40px;
-      touch-action: none;
-    }
+  display: grid;
+  grid-template-columns: repeat(3, 22vw);
+  gap: 10vw;
+  justify-content: center;
+  touch-action: none;
+}
 
-    .dot {
-      width: 20px;
-      height: 20px;
-      background: #888;
-      border-radius: 50%;
-      margin: auto;
-    }
+.dot {
+  width: 4.5vw;
+  height: 4.5vw;
+  background: #888;
+  border-radius: 50%;
+  margin: auto;
+}
 
-    .dot.active {
-      background: #4CAF50;
-      transform: scale(1.5);
-    }
+.dot.active {
+  background: #4CAF50;
+  transform: scale(1.8);
+}
   </style>
 </head>
 
@@ -103,7 +101,7 @@ function draw() {
   if (pattern.length === 0) return;
 
   ctx.strokeStyle = "#4CAF50";
-  ctx.lineWidth = 5;
+  ctx.lineWidth = 8;
   ctx.lineCap = "round";
 
   ctx.beginPath();
