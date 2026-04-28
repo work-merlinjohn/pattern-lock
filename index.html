@@ -22,12 +22,16 @@
       left: 0;
       pointer-events: none;
     }
-
-    .grid {
+.grid {
   display: grid;
   grid-template-columns: repeat(3, 22vw);
-  gap: 10vw;
+
+  /* ⭐ separate control */
+  column-gap: 10vw;   /* left-right spacing */
+  row-gap: 14vh;      /* top-bottom spacing (THIS fixes height) */
+
   justify-content: center;
+  align-items: center;
   touch-action: none;
 }
 
