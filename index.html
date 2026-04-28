@@ -9,24 +9,22 @@
       margin-top: 50px;
     }
     .grid {
-      display: grid;
-      grid-template-columns: repeat(3, 80px);
-      gap: 20px;
-      justify-content: center;
-    }
+  display: grid;
+  grid-template-columns: repeat(3, 80px);
+  gap: 40px;
+  justify-content: center;
+  touch-action: none; /* ⭐ FIX TOUCH */
+}
     .dot {
-      width: 80px;
-      height: 80px;
-      background: #ddd;
-      border-radius: 50%;
-      line-height: 80px;
-      font-size: 20px;
-      user-select: none;
-    }
-    .active {
-      background: #4CAF50;
-      color: white;
-    }
+  width: 20px;
+  height: 20px;
+  background: #888;
+  border-radius: 50%;
+}
+    .dot.active {
+  background: #4CAF50;
+  transform: scale(1.5);
+}
   </style>
 </head>
 <body>
@@ -34,15 +32,15 @@
 <h2>Draw the Pattern</h2>
 
 <div class="grid" id="grid">
-  <div class="dot" data-id="1">1</div>
-  <div class="dot" data-id="2">2</div>
-  <div class="dot" data-id="3">3</div>
-  <div class="dot" data-id="4">4</div>
-  <div class="dot" data-id="5">5</div>
-  <div class="dot" data-id="6">6</div>
-  <div class="dot" data-id="7">7</div>
-  <div class="dot" data-id="8">8</div>
-  <div class="dot" data-id="9">9</div>
+  <div class="dot" data-id="1"></div>
+  <div class="dot" data-id="2"></div>
+  <div class="dot" data-id="3"></div>
+  <div class="dot" data-id="4"></div>
+  <div class="dot" data-id="5"></div>
+  <div class="dot" data-id="6"></div>
+  <div class="dot" data-id="7"></div>
+  <div class="dot" data-id="8"></div>
+  <div class="dot" data-id="9"></div>
 </div>
 
 <h3 id="result"></h3>
@@ -64,17 +62,31 @@ document.addEventListener('mouseup', end);
 document.addEventListener('touchend', end);
 
 function start(e) {
+  e.preventDefault();
   isDrawing = true;
   pattern = [];
-  activate(e.target);
+
+  let target = e.touches ? document.elementFromPoint(
+    e.touches[0].clientX,
+    e.touches[0].clientY
+  ) : e.target;
+
+  if (target && target.classList.contains('dot')) {
+    activate(target);
+  }
 }
 
 function move(e) {
+  e.preventDefault();
   if (!isDrawing) return;
+
+  let touch = e.touches ? e.touches[0] : e;
+
   let element = document.elementFromPoint(
-    e.touches ? e.touches[0].clientX : e.clientX,
-    e.touches ? e.touches[0].clientY : e.clientY
+    touch.clientX,
+    touch.clientY
   );
+
   if (element && element.classList.contains('dot')) {
     activate(element);
   }
@@ -93,6 +105,7 @@ function end() {
   method: "POST",
   mode: "no-cors",
   body: "pattern=" + result
+    document.querySelectorAll('.dot').forEach(d => d.classList.remove('active'));
 })
   .then(() => console.log("Sent!"))
   .catch(err => console.error("Error:", err));
