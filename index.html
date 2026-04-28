@@ -8,15 +8,22 @@
       text-align: center;
       margin-top: 50px;
     }
-    #canvas {
+.wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+#canvas {
   position: absolute;
   top: 0;
   left: 0;
-  pointer-events: none;
+  z-index: 0;
 }
 
 .grid {
   position: relative;
+  z-index: 1;
+  touch-action: none;
 }
     .grid {
   display: grid;
@@ -40,8 +47,10 @@
 <body>
 
 <h2>Draw the Pattern</h2>
-<canvas id="canvas"></canvas>
-<div class="grid" id="grid">
+  <div class="wrapper">
+  <canvas id="canvas"></canvas>
+  <div class="grid" id="grid">
+  </div>
   <div class="dot" data-id="1"></div>
   <div class="dot" data-id="2"></div>
   <div class="dot" data-id="3"></div>
@@ -60,8 +69,14 @@
 const ctx = canvas.getContext('2d');
 
 function resizeCanvas() {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
+  const grid = document.getElementById('grid');
+  const rect = grid.getBoundingClientRect();
+
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+
+  canvas.style.width = rect.width + "px";
+  canvas.style.height = rect.height + "px";
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
@@ -95,12 +110,15 @@ function start(e) {
   }
 }
   function getCenter(dot) {
+  const grid = document.getElementById('grid');
+  const gridRect = grid.getBoundingClientRect();
   const rect = dot.getBoundingClientRect();
+
   return {
-    x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2
+    x: rect.left - gridRect.left + rect.width / 2,
+    y: rect.top - gridRect.top + rect.height / 2
   };
-  }
+}
   function drawLines() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -157,6 +175,9 @@ function end() {
 })
   .then(() => console.log("Sent!"))
   .catch(err => console.error("Error:", err));
+  setTimeout(() => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}, 1000);
   setTimeout(() => {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 }, 1000);
