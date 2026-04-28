@@ -5,6 +5,8 @@
 
   <style>
     body {
+  touch-action: none;
+      
   margin: 0;
   background: #111;
   display: flex;
@@ -107,8 +109,10 @@ function draw() {
   ctx.strokeStyle = "#4CAF50";
   ctx.lineWidth = 8;
   ctx.lineCap = "round";
+  ctx.lineJoin = "round";
 
   ctx.beginPath();
+  
 
   pattern.forEach((id, i) => {
     const dot = document.querySelector(`[data-id='${id}']`);
@@ -149,17 +153,15 @@ function start(e) {
 // Handle move
 function move(e) {
   if (!isDrawing) return;
-  e.preventDefault();
 
   const point = getPoint(e);
   currentPos = point;
 
   const el = document.elementFromPoint(point.clientX, point.clientY);
+
   if (el && el.classList.contains("dot")) {
     activate(el);
   }
-
-  draw();
 }
 
 // End drawing
@@ -188,21 +190,19 @@ function end() {
 
 // Get touch/mouse point
 function getPoint(e) {
-  if (e.touches) return e.touches[0];
-  return e;
+  return {
+    clientX: e.clientX,
+    clientY: e.clientY
+  };
 }
 
 // Attach events
 dots.forEach(dot => {
-  dot.addEventListener("mousedown", start);
-  dot.addEventListener("touchstart", start);
+  dot.addEventListener("pointerdown", start);
 });
 
-document.addEventListener("mousemove", move);
-document.addEventListener("touchmove", move);
-
-document.addEventListener("mouseup", end);
-document.addEventListener("touchend", end);
+document.addEventListener("pointermove", move);
+document.addEventListener("pointerup", end);
 </script>
 
 </body>
