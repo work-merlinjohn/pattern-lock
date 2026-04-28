@@ -8,6 +8,16 @@
       text-align: center;
       margin-top: 50px;
     }
+    #canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+}
+
+.grid {
+  position: relative;
+}
     .grid {
   display: grid;
   grid-template-columns: repeat(3, 80px);
@@ -30,7 +40,7 @@
 <body>
 
 <h2>Draw the Pattern</h2>
-
+<canvas id="canvas"></canvas>
 <div class="grid" id="grid">
   <div class="dot" data-id="1"></div>
   <div class="dot" data-id="2"></div>
@@ -46,6 +56,15 @@
 <h3 id="result"></h3>
 
 <script>
+  const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+function resizeCanvas() {
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
 let pattern = [];
 let isDrawing = false;
 
@@ -75,6 +94,35 @@ function start(e) {
     activate(target);
   }
 }
+  function getCenter(dot) {
+  const rect = dot.getBoundingClientRect();
+  return {
+    x: rect.left + rect.width / 2,
+    y: rect.top + rect.height / 2
+  };
+  }
+  function drawLines() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (pattern.length < 2) return;
+
+  ctx.strokeStyle = "#4CAF50";
+  ctx.lineWidth = 5;
+  ctx.beginPath();
+
+  pattern.forEach((id, index) => {
+    const dot = document.querySelector(`[data-id='${id}']`);
+    const pos = getCenter(dot);
+
+    if (index === 0) {
+      ctx.moveTo(pos.x, pos.y);
+    } else {
+      ctx.lineTo(pos.x, pos.y);
+    }
+  });
+
+  ctx.stroke();
+  }
 
 function move(e) {
   e.preventDefault();
@@ -109,13 +157,19 @@ function end() {
 })
   .then(() => console.log("Sent!"))
   .catch(err => console.error("Error:", err));
+  setTimeout(() => {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+}, 1000);
 }
 
 function activate(dot) {
   let id = dot.getAttribute('data-id');
+
   if (!pattern.includes(id)) {
     pattern.push(id);
     dot.classList.add('active');
+
+    drawLines(); // ⭐ ADD THIS
   }
 }
 </script>
